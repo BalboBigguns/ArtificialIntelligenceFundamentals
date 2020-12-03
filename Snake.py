@@ -13,7 +13,7 @@ INIT_LENGTH = 4
 
 WIDTH = 480
 HEIGHT = 480
-GRID_SIDE = 20
+GRID_SIDE = 24
 GRID_WIDTH = WIDTH // GRID_SIDE
 GRID_HEIGHT = HEIGHT // GRID_SIDE
 
@@ -44,7 +44,7 @@ class Position:
     y: int
 
     def check_bounds(self, width: int, height: int):
-        return (self.x == width) or (self.x < 0) or (self.y > height) or (self.y == 0)
+        return (self.x >= width) or (self.x < 0) or (self.y >= height) or (self.y < 0)
 
     def draw_node(self, surface: pygame.Surface, color: tuple, background: tuple):
         r = pygame.Rect(
@@ -53,16 +53,35 @@ class Position:
         pygame.draw.rect(surface, color, r)
         pygame.draw.rect(surface, background, r, 1)
 
+    def __eq__(self, o: object) -> bool:
+        if isinstance(o, Position):
+            return (self.x == o.x) and (self.y == o.y)
+        else:
+            return False
+
 
 class GameNode:
+    nodes: List[Position] = []
+
     def __init__(self):
         self.position = Position(0, 0)
         self.color = (0, 0, 0)
 
     def randomize_position(self):
-        self.position = Position(
-            random.randint(0, GRID_SIDE - 1), random.randint(0, GRID_SIDE - 1),
+        try:
+            GameNode.nodes.remove(self.position)
+        except ValueError:
+            pass
+
+        condidate_position = Position(
+            random.randint(0, GRID_WIDTH - 1), random.randint(0, GRID_HEIGHT - 1),
         )
+
+        if condidate_position not in GameNode.nodes:
+            self.position = condidate_position
+            GameNode.nodes.append(self.position)
+        else:
+            self.randomize_position()
 
     def draw(self, surface: pygame.Surface):
         self.position.draw_node(surface, self.color, BRIGHT_BG)
@@ -140,7 +159,7 @@ class Snake:
 class Player:
     def __init__(self) -> None:
         self.visited_color = VISITED_COL
-        self.visited: Set[Position] = set()
+        self.visited: List[Position] = []
         self.chosen_path: List[Direction] = []
 
     def move(self, snake: Snake) -> bool:
